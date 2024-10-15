@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
+import 'dart:async'; // Import this
 
 const markdownCunks = [
   '''
@@ -34,7 +35,7 @@ word being added to the text to animate i
 n using a fade functionality. This an
   ''',
   '''
-example of this can be seen when using Gemini chat.”
+example of this can be seen when using Gemini chat.” 
   ''',
   '''
 **How it’s returned**
@@ -61,12 +62,6 @@ added to the text”
   ''',
 ];
 
-const defaultMessage = 'Tap FAB to add markdown';
-
-void main() {
-  runApp(const MyApp());
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
@@ -91,19 +86,59 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+class FadingText extends StatefulWidget {
+  final String text;
+
+  const FadingText({super.key, required this.text});
+
+  @override
+  State<FadingText> createState() => _FadingTextState();
+}
+
+class _FadingTextState extends State<FadingText> {
+  double _opacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeIn();
+  }
+
+  void _fadeIn() {
+    Future.delayed(const Duration(microseconds: 1), () {
+      setState(() {
+        _opacity = 1.0;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _opacity,
+      duration: const Duration(seconds: 1),
+      child: MarkdownBody(data: widget.text),
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
-  String _currentMarkdown = defaultMessage;
+  final List<String> _markdownTexts = [];
   int _markdownIndex = 0;
+  Timer? _timer;
 
-  void _addMarkdown() {
-    setState(() {
-      if (_currentMarkdown == defaultMessage) {
-        _currentMarkdown = markdownCunks[_markdownIndex];
+  void _startAddingMarkdown() {
+    _timer?.cancel(); // Cancel any existing timer
+
+    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (_markdownIndex < markdownCunks.length) {
+        setState(() {
+          _markdownTexts.add(markdownCunks[_markdownIndex]);
+          _markdownIndex++;
+        });
       } else {
-        _currentMarkdown += markdownCunks[_markdownIndex];
+        _timer?.cancel(); // Stop the timer when all chunks are added
       }
-
-      _markdownIndex++;
     });
   }
 
@@ -115,17 +150,25 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-          child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
-        child: MarkdownBody(
-          data: _currentMarkdown,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView.builder(
+            itemCount: _markdownTexts.length,
+            itemBuilder: (context, index) {
+              return FadingText(text: _markdownTexts[index]);
+            },
+          ),
         ),
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addMarkdown,
-        tooltip: 'Increment',
+        onPressed: _startAddingMarkdown,
+        tooltip: 'Start Adding Markdown',
         child: const Icon(Icons.add),
       ),
     );
   }
+}
+
+void main() {
+  runApp(const MyApp());
 }
