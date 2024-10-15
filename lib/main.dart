@@ -132,21 +132,15 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {});
   }
 
-  void _addMarkdown() {
-    if (currentIndex == fullTextSections.length) {
-      currentIndex = 0;
-    }
-
-    if (currentIndex < fullTextSections.length) {
-      String txt = currentIndex == 0
+  void _addMarkdown() async {
+    for (int i = 0; i < fullTextSections.length; i++) {
+      String txt = i == 0
           ? fullTextSections[currentIndex]
           : fullTextSections[currentIndex]
               .replaceAll(fullTextSections[currentIndex - 1], "");
-
       setState(() {
         List<Widget> widgets = [];
         if (txt.isEmpty) {
-          print("ah");
           widgets.add(SizedBox(
             height: 2,
             width: double.infinity,
@@ -160,6 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
         textWidgets.addAll(widgets);
         currentIndex++;
       });
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
