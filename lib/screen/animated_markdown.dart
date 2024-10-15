@@ -80,14 +80,18 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
             return Opacity(
               opacity: _opacity,
               child: SelectionArea(
-                child: AnimatedBuilder(
-                  animation: _staggerController,
-                  builder: (context, child) {
-                    return MarkdownBody(
-                      data: _currentMarkdownContent,
-                      styleSheet: markDownStyle,
-                    );
-                  },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: MarkdownBody(
+                          data: _currentMarkdownContent,
+                          styleSheet: markDownStyle,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
