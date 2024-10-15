@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
-import 'dart:async'; // Import this
+import 'dart:async';
+import 'package:typewritertext/typewritertext.dart';
 
-const markdownCunks = [
+const markdownChunks = [
   '''
 ### Problem
 
-We’re building an LLM based tool for one of our FilledStacks clients. 
+We’re building an LLM based tool for one of our FilledStacks clients.
   ''',
   '''
 As with ChatGPT, the response from the LLM is streamed back to us.
@@ -15,7 +16,7 @@ As with ChatGPT, the response from the LLM is streamed back to us.
 The text comes back as it 
   ''',
   '''
-is being completed. 
+is being completed.
   ''',
   '''
 Here’s an example of how
@@ -29,13 +30,13 @@ paragraph would be returned:
 “I need every new
   ''',
   '''
-word being added to the text to animate i
+word being added to the text to animate in
   ''',
   '''
-n using a fade functionality. This an
+using a fade functionality. This an
   ''',
   '''
-example of this can be seen when using Gemini chat.” 
+example of this can be seen when using Gemini chat.”
   ''',
   '''
 **How it’s returned**
@@ -64,6 +65,7 @@ added to the text”
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -86,42 +88,6 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class FadingText extends StatefulWidget {
-  final String text;
-
-  const FadingText({super.key, required this.text});
-
-  @override
-  State<FadingText> createState() => _FadingTextState();
-}
-
-class _FadingTextState extends State<FadingText> {
-  double _opacity = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeIn();
-  }
-
-  void _fadeIn() {
-    Future.delayed(const Duration(microseconds: 1), () {
-      setState(() {
-        _opacity = 1.0;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: const Duration(seconds: 1),
-      child: MarkdownBody(data: widget.text),
-    );
-  }
-}
-
 class _MyHomePageState extends State<MyHomePage> {
   final List<String> _markdownTexts = [];
   int _markdownIndex = 0;
@@ -129,17 +95,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _startAddingMarkdown() {
     _timer?.cancel(); // Cancel any existing timer
+    _markdownIndex = 0; // Reset index to start from the beginning
+    _addNextChunk(); // Start adding markdown chunks
+  }
 
-    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (_markdownIndex < markdownCunks.length) {
-        setState(() {
-          _markdownTexts.add(markdownCunks[_markdownIndex]);
-          _markdownIndex++;
-        });
-      } else {
-        _timer?.cancel(); // Stop the timer when all chunks are added
-      }
+  void _addNextChunk() {
+    if (_markdownIndex < markdownChunks.length) {
+      _typewriteMarkdown(markdownChunks[_markdownIndex]).then((_) {
+        _markdownIndex++;
+        _addNextChunk(); // Recursively add the next chunk after the current one finishes
+      });
+    }
+  }
+
+  Future<void> _typewriteMarkdown(String markdownChunk) async {
+    final controller = TypeWriterController(
+      text: markdownChunk,
+      duration: const Duration(milliseconds: 50),
+    );
+
+    setState(() {
+      _markdownTexts
+          .add(markdownChunk); // Add the full chunk initially for display
     });
+
+    // Simulate typing by waiting for the entire text to be typed
+    await Future.delayed(Duration(
+        milliseconds:
+            50 * markdownChunk.length)); // Adjust based on text length
   }
 
   @override
@@ -155,7 +138,17 @@ class _MyHomePageState extends State<MyHomePage> {
           child: ListView.builder(
             itemCount: _markdownTexts.length,
             itemBuilder: (context, index) {
-              return FadingText(text: _markdownTexts[index]);
+              return TypeWriter(
+                controller: TypeWriterController(
+                  text: _markdownTexts[index],
+                  duration: const Duration(milliseconds: 50),
+                ),
+                builder: (context, value) {
+                  return MarkdownBody(
+                    data: value.text,
+                  );
+                },
+              );
             },
           ),
         ),
