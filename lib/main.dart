@@ -93,23 +93,50 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> fullTextSections = [
-    "I need",
-    "I need every new word",
-    "I need every new word being added to",
-    "I need every new word being added to the text",
-    "I need every new word being added to the text to animate in",
-    "I need every new word being added to the text to animate in using a fade functionality.",
-    "This an example of this can be seen when using Gemini chat."
-  ];
-
+  List<String> fullTextSections = [];
   List<Widget> textWidgets = [];
   int currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    setup();
+  }
+
+  void setup() {
+    for (String chunk in markdownCunks) {
+      // Detect if the chunk contains a double newline (\n\n) indicating an empty line.
+      if (chunk.contains('\n\n')) {
+        // Split the chunk at each instance of double newline (\n\n).
+        List<String> parts = chunk.split('\n\n');
+
+        for (int i = 0; i < parts.length; i++) {
+          String part = parts[i];
+
+          // Add the text part.
+          if (part.isNotEmpty) {
+            fullTextSections.add(part);
+          }
+
+          // Add an empty string after each part except the last one to represent the blank line.
+          if (i < parts.length - 1) {
+            fullTextSections.add('');
+          }
+        }
+      } else {
+        // If no double newline is found, add the chunk as is.
+        fullTextSections.add(chunk);
+      }
+    }
+
+    setState(() {});
+  }
+
   void _addMarkdown() {
-    /// This is used to keep adding the text
     if (currentIndex == fullTextSections.length) {
       currentIndex = 0;
     }
+
     if (currentIndex < fullTextSections.length) {
       String txt = currentIndex == 0
           ? fullTextSections[currentIndex]
@@ -117,11 +144,20 @@ class _MyHomePageState extends State<MyHomePage> {
               .replaceAll(fullTextSections[currentIndex - 1], "");
 
       setState(() {
-        textWidgets.add(
+        List<Widget> widgets = [];
+        if (txt.isEmpty) {
+          print("ah");
+          widgets.add(SizedBox(
+            height: 2,
+            width: double.infinity,
+          ));
+        }
+        widgets.add(
           MarkdownBody(data: txt)
               .animate()
-              .fade(duration: Duration(milliseconds: 800)),
+              .fade(duration: const Duration(milliseconds: 800)),
         );
+        textWidgets.addAll(widgets);
         currentIndex++;
       });
     }
@@ -135,14 +171,15 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-          child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
-        child: Wrap(
-          spacing: 3.0,
-          runSpacing: 4.0,
-          children: textWidgets,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Wrap(
+            spacing: 3.0,
+            runSpacing: 4.0,
+            children: textWidgets,
+          ),
         ),
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addMarkdown,
         tooltip: 'Increment',
