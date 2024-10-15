@@ -3,20 +3,19 @@ import 'package:flutter_markdown_selectionarea/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 
 class AnimatedMarkdown extends StatefulWidget {
-  // This widget takes markdown text chunks and animates them into the UI.
-  final List<String> markdownChunks; // List of markdown chunks to display.
-  final Duration
-      chunkFadeDuration; // Duration for how long each chunk will fade in.
-  final Duration chunkFadeDelay; // Delay between each chunk fading in.
+  final List<String> markdownChunks;
+  final Duration wordFadeDuration;
+  final Duration wordFadeDelay;
+  final String defaultMessage;
 
   const AnimatedMarkdown({
-    super.key,
+    Key? key,
     required this.markdownChunks,
-    this.chunkFadeDuration =
-        const Duration(milliseconds: 500), // Default fade duration.
-    this.chunkFadeDelay = const Duration(
-        milliseconds: 100), // Default delay between chunk animations.
-  });
+    this.wordFadeDuration = const Duration(milliseconds: 500),
+    this.wordFadeDelay = const Duration(milliseconds: 100),
+    this.defaultMessage =
+        "### Problem\n\nWe're building an LLM based tool for one of our FilledStacks clients.",
+  }) : super(key: key);
 
   @override
   State<AnimatedMarkdown> createState() => _AnimatedMarkdownState();
@@ -24,86 +23,82 @@ class AnimatedMarkdown extends StatefulWidget {
 
 class _AnimatedMarkdownState extends State<AnimatedMarkdown> {
   List<String> displayedChunks = [];
-  bool isAnimating = false; // Flag to check if animation is running.
+  int currentChunkIndex = 0;
+  bool isDefaultMessageDisplayed = true;
+  void addNextChunk() {
+    if (currentChunkIndex < widget.markdownChunks.length) {
+      setState(() {
+        if (isDefaultMessageDisplayed) {
+          displayedChunks.clear();
+          isDefaultMessageDisplayed = false;
+        }
 
-  // Method to start the animation of the markdown chunks.
-  void startAnimation() {
-    if (isAnimating)
-      return; // Prevents restarting if the animation is already running.
-    setState(() {
-      isAnimating = true;
-      displayedChunks = []; // Reset displayed chunks at the start.
-    });
+        // Create a RegExp to check if the last chunk ends with punctuation
+        final punctuationRegExp = RegExp(r'[.:”]$');
 
-    animateChunks(0); // Start animating chunks from the first one.
+        // Check if the last chunk exists and does not end with punctuation
+        if (displayedChunks.isNotEmpty &&
+            !punctuationRegExp.hasMatch(displayedChunks.last.trim())) {
+          // Merge current chunk with the last one
+          displayedChunks[displayedChunks.length - 1] +=
+              widget.markdownChunks[currentChunkIndex];
+        } else {
+          // Add the next chunk as a separate entry
+          displayedChunks.add(widget.markdownChunks[currentChunkIndex]);
+        }
+
+        // Increment the current chunk index after updating the state
+        currentChunkIndex++;
+      });
+    }
   }
 
-  // Recursive method to animate each chunk in the list.
-  void animateChunks(int index) {
-    if (index >= widget.markdownChunks.length) {
-      // Stop animation when all chunks are displayed.
-      setState(() {
-        isAnimating = false;
-      });
-      return;
-    }
-
-    // Delay the addition of the next chunk for smooth animation.
-    Future.delayed(widget.chunkFadeDelay, () {
-      if (mounted) {
-        // Check if the widget is still in the tree.
-        setState(() {
-          displayedChunks
-              .add(widget.markdownChunks[index]); // Add chunk one by one.
-        });
-        animateChunks(index + 1); // Move to the next chunk.
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    displayedChunks.add(widget.defaultMessage);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ElevatedButton(
-          // Button to trigger the animation.
-          onPressed: startAnimation,
-          child: Text(isAnimating ? 'Animating...' : 'Start Animation'),
-        ),
-        SizedBox(height: 20), // Adds some spacing.
-        Expanded(
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
           child: SingleChildScrollView(
-            // Scrollable area for the animated markdown content.
-            child: AnimatedMarkdownBody(
-              data: displayedChunks
-                  .join('\n'), // Combine displayed chunks with proper spacing.
-              chunkFadeDuration:
-                  widget.chunkFadeDuration, // Pass animation duration.
+            child: SizedBox(
+              child: AnimatedMarkdownBody(
+                data: displayedChunks.join('\n'),
+                wordFadeDuration: widget.wordFadeDuration,
+                wordFadeDelay: widget.wordFadeDelay,
+              ),
             ),
           ),
         ),
-      ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: addNextChunk,
+        child: Icon(Icons.add),
+      ),
     );
   }
 }
 
 class AnimatedMarkdownBody extends StatelessWidget {
-  // This widget handles the actual rendering of markdown text with animations.
-  final String data; // The markdown data to render.
-  final Duration chunkFadeDuration; // Duration of the chunk fade-in animations.
+  final String data;
+  final Duration wordFadeDuration;
+  final Duration wordFadeDelay;
 
   const AnimatedMarkdownBody({
-    super.key,
+    Key? key,
     required this.data,
-    required this.chunkFadeDuration,
-  });
+    required this.wordFadeDuration,
+    required this.wordFadeDelay,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final theme =
-        Theme.of(context); // Use the current theme for consistent styling.
+    final theme = Theme.of(context);
 
-    // Define a style sheet for the markdown elements.
     final styleSheet = MarkdownStyleSheet(
       h1: theme.textTheme.headlineLarge,
       h2: theme.textTheme.headlineMedium,
@@ -111,35 +106,45 @@ class AnimatedMarkdownBody extends StatelessWidget {
       h4: theme.textTheme.titleLarge,
       h5: theme.textTheme.titleMedium,
       h6: theme.textTheme.titleSmall,
-      p: theme.textTheme.bodySmall, // Styling for paragraph text.
-      strong:
-          TextStyle(fontWeight: FontWeight.bold), // Ensure bold text is bold.
-      em: TextStyle(
-          fontStyle: FontStyle.italic), // Italics for emphasized text.
+      p: theme.textTheme.bodyMedium,
+      strong: TextStyle(fontWeight: FontWeight.bold),
+      em: TextStyle(fontStyle: FontStyle.italic),
       blockquote: theme.textTheme.bodyMedium?.copyWith(
-        color: Colors.grey.shade700, // Dark gray color for blockquotes.
-        fontStyle: FontStyle.italic, // Italic styling for blockquotes.
+        color: Colors.grey.shade700,
+        fontStyle: FontStyle.italic,
       ),
       code: TextStyle(
-        fontFamily: 'Courier', // Monospace font for code.
-        backgroundColor:
-            Colors.grey.shade200, // Light gray background for code blocks.
+        fontFamily: 'Courier',
+        backgroundColor: Colors.grey.shade200,
       ),
     );
 
-    // Return the actual MarkdownBody widget, which renders the markdown text with custom builders for animated elements.
     return MarkdownBody(
-      data: data, // The markdown content to display.
+      data: data,
+      styleSheet: styleSheet,
       builders: {
         'p': AnimatedParagraphBuilder(
-            fadeDuration:
-                chunkFadeDuration), // Use animated paragraph builder for paragraphs.
-        'h1': AnimatedParagraphBuilder(
-          fadeDuration: chunkFadeDuration, // Same for headers.
+          fadeDuration: wordFadeDuration,
+          fadeDelay: wordFadeDelay,
+        ),
+        'h1': AnimatedHeaderBuilder(
+          fadeDuration: wordFadeDuration,
+          fadeDelay: wordFadeDelay,
+          textStyle: styleSheet.h1,
+        ),
+        'h2': AnimatedHeaderBuilder(
+          fadeDuration: wordFadeDuration,
+          fadeDelay: wordFadeDelay,
+          textStyle: styleSheet.h2,
         ),
         'h3': AnimatedHeaderBuilder(
-          fadeDuration: chunkFadeDuration,
-          textStyle: styleSheet.h3, // Custom style for h3 headers.
+          fadeDuration: wordFadeDuration,
+          fadeDelay: wordFadeDelay,
+          textStyle: styleSheet.h3,
+        ),
+        'strong': AnimatedStrongTextBuilder(
+          fadeDuration: wordFadeDuration,
+          fadeDelay: wordFadeDelay,
         ),
       },
     );
@@ -148,104 +153,139 @@ class AnimatedMarkdownBody extends StatelessWidget {
 
 class AnimatedHeaderBuilder extends MarkdownElementBuilder {
   final Duration fadeDuration;
+  final Duration fadeDelay;
   final TextStyle? textStyle;
 
   AnimatedHeaderBuilder({
     required this.fadeDuration,
+    required this.fadeDelay,
     this.textStyle,
   });
 
   @override
   Widget? visitText(md.Text text, TextStyle? preferredStyle) {
-    return AnimatedChunk(
+    return AnimatedWords(
       text: text.text,
-      style:
-          textStyle ?? preferredStyle, // Apply the header style if available.
-      duration: fadeDuration,
+      style: textStyle ?? preferredStyle,
+      fadeDuration: fadeDuration,
+      fadeDelay: fadeDelay,
     );
   }
 }
 
 class AnimatedStrongTextBuilder extends MarkdownElementBuilder {
   final Duration fadeDuration;
+  final Duration fadeDelay;
 
-  AnimatedStrongTextBuilder({required this.fadeDuration});
+  AnimatedStrongTextBuilder({
+    required this.fadeDuration,
+    required this.fadeDelay,
+  });
 
   @override
   Widget? visitText(md.Text text, TextStyle? preferredStyle) {
-    return AnimatedChunk(
+    return AnimatedWords(
       text: text.text,
       style: preferredStyle?.copyWith(fontWeight: FontWeight.bold),
-      duration: fadeDuration,
+      fadeDuration: fadeDuration,
+      fadeDelay: fadeDelay,
     );
   }
 }
 
 class AnimatedParagraphBuilder extends MarkdownElementBuilder {
   final Duration fadeDuration;
+  final Duration fadeDelay;
 
-  AnimatedParagraphBuilder({required this.fadeDuration});
+  AnimatedParagraphBuilder({
+    required this.fadeDuration,
+    required this.fadeDelay,
+  });
 
   @override
   Widget? visitText(md.Text text, TextStyle? preferredStyle) {
-    return AnimatedChunk(
+    return AnimatedWords(
       text: text.text,
       style: preferredStyle,
-      duration: fadeDuration,
+      fadeDuration: fadeDuration,
+      fadeDelay: fadeDelay,
     );
   }
 }
 
-class AnimatedChunk extends StatefulWidget {
+class AnimatedWords extends StatefulWidget {
   final String text;
   final TextStyle? style;
-  final Duration duration;
+  final Duration fadeDuration;
+  final Duration fadeDelay;
 
-  const AnimatedChunk({
-    super.key,
+  const AnimatedWords({
+    Key? key,
     required this.text,
     this.style,
-    required this.duration,
-  });
+    required this.fadeDuration,
+    required this.fadeDelay,
+  }) : super(key: key);
 
   @override
-  State<AnimatedChunk> createState() => _AnimatedChunkState();
+  _AnimatedWordsState createState() => _AnimatedWordsState();
 }
 
-class _AnimatedChunkState extends State<AnimatedChunk>
+class _AnimatedWordsState extends State<AnimatedWords>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller; // Controls the animation.
-  late Animation<double>
-      _opacityAnimation; // Animation for opacity (fading effect).
+  late AnimationController _controller;
+  List<Animation<double>> _fadeAnimations = [];
+  List<String> _words = [];
 
   @override
   void initState() {
     super.initState();
+    _words = widget.text.split(' ');
     _controller = AnimationController(
       vsync: this,
-      duration: widget.duration, // Set the duration for the fade animation.
+      duration: widget.fadeDuration + (widget.fadeDelay * _words.length),
     );
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        _controller); // Opacity goes from transparent to fully visible.
-    _controller.forward(); // Start the animation.
+
+    for (int i = 0; i < _words.length; i++) {
+      final start = i *
+          widget.fadeDelay.inMilliseconds /
+          _controller.duration!.inMilliseconds;
+      final end = start +
+          widget.fadeDuration.inMilliseconds /
+              _controller.duration!.inMilliseconds;
+      _fadeAnimations.add(
+        Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Interval(start, end, curve: Curves.easeInOut),
+          ),
+        ),
+      );
+    }
+
+    _controller.forward();
   }
 
   @override
   void dispose() {
-    _controller
-        .dispose(); // Dispose of the animation controller when the widget is removed.
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // FadeTransition widget animates the opacity of its child.
-    return FadeTransition(
-      opacity: _opacityAnimation, // Apply the opacity animation to the text.
-      child: Text(
-        widget.text,
-        style: widget.style,
-      ),
+    return Wrap(
+      children: _words.asMap().entries.map((entry) {
+        final index = entry.key;
+        final word = entry.value;
+        return FadeTransition(
+          opacity: _fadeAnimations[index],
+          child: Text(
+            '$word ',
+            style: widget.style,
+          ),
+        );
+      }).toList(),
     );
   }
 }

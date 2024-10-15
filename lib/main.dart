@@ -12,7 +12,7 @@ We’re building an LLM based tool for one of our FilledStacks clients.
 As with ChatGPT, the response from the LLM is streamed back to us.
   ''',
   '''
-The text comes back as it 
+The text comes back as it
   ''',
   '''
 is being completed. 
@@ -26,16 +26,7 @@ paragraph would be returned:
   '''
 **The full paragraph**
 
-“I need every new
-  ''',
-  '''
-word being added to the text to animate i
-  ''',
-  '''
-n using a fade functionality. This an
-  ''',
-  '''
-example of this can be seen when using Gemini chat.”
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”
   ''',
   '''
 **How it’s returned**
@@ -93,18 +84,6 @@ class _MyHomePageState extends State<MyHomePage> {
   String _currentMarkdown = defaultMessage;
   int _markdownIndex = 0;
 
-  void _addMarkdown() {
-    setState(() {
-      if (_currentMarkdown == defaultMessage) {
-        _currentMarkdown = markdownChunks[_markdownIndex];
-      } else {
-        _currentMarkdown += markdownChunks[_markdownIndex];
-      }
-
-      _markdownIndex++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -112,8 +91,8 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Center(
           child: AnimatedMarkdown(
             markdownChunks: markdownChunks,
-            chunkFadeDuration: Duration(milliseconds: 500),
-            chunkFadeDelay: Duration(milliseconds: 100),
+            wordFadeDuration: Duration(milliseconds: 500),
+            wordFadeDelay: Duration(milliseconds: 100),
           ),
         ),
       ),
