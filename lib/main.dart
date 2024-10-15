@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 
 const markdownCunks = [
@@ -92,19 +93,38 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _currentMarkdown = defaultMessage;
-  int _markdownIndex = 0;
+  List<String> fullTextSections = [
+    "I need",
+    "I need every new word",
+    "I need every new word being added to",
+    "I need every new word being added to the text",
+    "I need every new word being added to the text to animate in",
+    "I need every new word being added to the text to animate in using a fade functionality.",
+    "This an example of this can be seen when using Gemini chat."
+  ];
 
+  List<Widget> textWidgets = [];
+  int currentIndex = 0;
   void _addMarkdown() {
-    setState(() {
-      if (_currentMarkdown == defaultMessage) {
-        _currentMarkdown = markdownCunks[_markdownIndex];
-      } else {
-        _currentMarkdown += markdownCunks[_markdownIndex];
-      }
+    /// This is used to keep adding the text
+    if (currentIndex == fullTextSections.length) {
+      currentIndex = 0;
+    }
+    if (currentIndex < fullTextSections.length) {
+      String txt = currentIndex == 0
+          ? fullTextSections[currentIndex]
+          : fullTextSections[currentIndex]
+              .replaceAll(fullTextSections[currentIndex - 1], "");
 
-      _markdownIndex++;
-    });
+      setState(() {
+        textWidgets.add(
+          MarkdownBody(data: txt)
+              .animate()
+              .fade(duration: Duration(milliseconds: 800)),
+        );
+        currentIndex++;
+      });
+    }
   }
 
   @override
@@ -117,8 +137,10 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
           child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 700),
-        child: MarkdownBody(
-          data: _currentMarkdown,
+        child: Wrap(
+          spacing: 3.0,
+          runSpacing: 4.0,
+          children: textWidgets,
         ),
       )),
       floatingActionButton: FloatingActionButton(
