@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 
-const markdownCunks = [
+const markdownChunks = [
   '''
 ### Problem
 
@@ -69,6 +69,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -91,20 +92,49 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   String _currentMarkdown = defaultMessage;
+  String _newMarkdown = "";
   int _markdownIndex = 0;
+  late AnimationController _animationController;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the AnimationController for controlling the fade animation
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+
+    // Define the opacity animation (from invisible to fully visible)
+    _opacityAnimation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
+  }
 
   void _addMarkdown() {
     setState(() {
       if (_currentMarkdown == defaultMessage) {
-        _currentMarkdown = markdownCunks[_markdownIndex];
+        _currentMarkdown = "";
       } else {
-        _currentMarkdown += markdownCunks[_markdownIndex];
+        _currentMarkdown += _newMarkdown;
       }
 
+      _newMarkdown = markdownChunks[_markdownIndex];
       _markdownIndex++;
+
+      // Restart the animation for the new chunk only
+      _animationController.forward(from: 0.0);
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose(); // Clean up the animation controller
+    super.dispose();
   }
 
   @override
@@ -115,15 +145,32 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-          child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
-        child: MarkdownBody(
-          data: _currentMarkdown,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MarkdownBody(data: _currentMarkdown), // Static text
+              AnimatedBuilder(
+                animation: _opacityAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _opacityAnimation.value,
+                    child: MarkdownBody(data: _newMarkdown), // New chunk only
+                  );
+                },
+              ),
+            ],
+          ),
         ),
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addMarkdown,
-        tooltip: 'Increment',
+        onPressed: () {
+          if (_markdownIndex < markdownChunks.length) {
+            _addMarkdown(); // Only add more chunks if available
+          }
+        },
+        tooltip: 'Add Markdown',
         child: const Icon(Icons.add),
       ),
     );
