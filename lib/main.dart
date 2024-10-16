@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
+import 'package:markdown_fade/widget/fade_streaming_text.dart';
 
 const markdownCunks = [
   '''
@@ -58,7 +60,7 @@ added to the text”
   ''',
   '''
 “I need every new word being added to the text to animate in”
-  ''',
+  '''
 ];
 
 const defaultMessage = 'Tap FAB to add markdown';
@@ -92,19 +94,36 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _currentMarkdown = defaultMessage;
   int _markdownIndex = 0;
 
-  void _addMarkdown() {
-    setState(() {
-      if (_currentMarkdown == defaultMessage) {
-        _currentMarkdown = markdownCunks[_markdownIndex];
-      } else {
-        _currentMarkdown += markdownCunks[_markdownIndex];
-      }
+  final StreamController<String> _markdownStream = StreamController<String>();
 
+  void _addMarkdown() {
+    if (_markdownIndex < markdownCunks.length) {
+      _markdownStream.add(markdownCunks[_markdownIndex]);
       _markdownIndex++;
+      setState(() {});
+    } else {
+      _markdownStream.close();
+    }
+  }
+
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addDefaultMessage();
     });
+
+    // Uncomment to add markdown in intervals to mimic real-time data
+
+    Timer.periodic(const Duration(milliseconds: 10), (timer) {
+      _addMarkdown();
+    });
+    super.initState();
+  }
+
+  void _addDefaultMessage() {
+    _markdownStream.add('$defaultMessage\n');
   }
 
   @override
@@ -115,14 +134,19 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-          child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
-        child: MarkdownBody(
-          data: _currentMarkdown,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: FadeStreamingText(
+            textStream: _markdownStream.stream,
+            // staticMarkdown: defaultMessage,
+            delay: const Duration(milliseconds: 500),
+          ),
         ),
-      )),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addMarkdown,
+        onPressed: () {
+          _addMarkdown();
+        },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
