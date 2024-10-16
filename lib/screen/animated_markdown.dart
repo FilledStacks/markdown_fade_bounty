@@ -10,7 +10,7 @@ class AnimatedFadeText extends StatefulWidget {
   const AnimatedFadeText({
     super.key,
     required this.markdownTexts,
-    this.animationDuration = const Duration(seconds: 5),
+    this.animationDuration = const Duration(milliseconds: 500),
   });
 
   @override
@@ -19,53 +19,55 @@ class AnimatedFadeText extends StatefulWidget {
 
 class AnimatedFadeTextState extends State<AnimatedFadeText>
     with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late AnimationController _staggerController;
-  String _currentMarkdownContent = '';
-  int _wordIndex = 0;
+  final List<String> _displayedLines = [];
+  int _currentLineIndex = 0;
   double _opacity = 0.0;
+  late AnimationController _controller;
+  late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
-      duration: widget.animationDuration * widget.markdownTexts.length,
+      duration: const Duration(
+          milliseconds: 250), // You can adjust duration as needed
       vsync: this,
     );
 
-    _staggerController = AnimationController(
-      duration: widget.animationDuration,
-      vsync: this,
-    );
+    _animation = TweenSequence<double>([
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.0, end: 1.0),
+        weight: 1.0,
+      ),
+    ]).animate(_controller);
+    _animation.addStatusListener((status) {});
   }
 
   Future<void> playAnimation() async {
-    while (_wordIndex < widget.markdownTexts.length) {
+    while (_currentLineIndex < widget.markdownTexts.length) {
       setState(() {
-        _currentMarkdownContent += '${widget.markdownTexts[_wordIndex]} ';
-        _wordIndex++;
+        _displayedLines.add(widget.markdownTexts[_currentLineIndex]);
+        _currentLineIndex++;
       });
 
-      await Future.delayed(const Duration(milliseconds: 50));
-
-      setState(() {
-        _opacity += 0.05;
-        if (_opacity > 1.0) _opacity = 1.0;
-      });
-
-      _staggerController.forward();
-      await _staggerController.reverse();
+      await _fadeInNewline();
     }
+  }
 
-    await Future.delayed(const Duration(milliseconds: 100));
-    _controller.forward();
+  Future<void> _fadeInNewline() async {
+    _animation.addListener(() {
+      setState(() {
+        _opacity = _animation.value;
+      });
+    });
+
+    await _controller.forward();
+    _controller.reset();
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _staggerController.dispose();
     super.dispose();
   }
 
@@ -74,28 +76,47 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
     return Scaffold(
       backgroundColor: black,
       body: Center(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Opacity(
-              opacity: _opacity,
-              child: SelectionArea(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
+        child: SelectionArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _displayedLines.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      String line = entry.value;
+                      return ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.black,
+                              Colors.black,
+                              index == _displayedLines.length - 1
+                                  ? Colors.black.withOpacity(_opacity)
+                                  : Colors.black,
+                            ],
+                            stops: const [
+                              0.2,
+                              0.1,
+                              0.9,
+                            ],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.dstIn,
                         child: MarkdownBody(
-                          data: _currentMarkdownContent,
+                          data: line,
                           styleSheet: markDownStyle,
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

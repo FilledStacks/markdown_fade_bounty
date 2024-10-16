@@ -10,7 +10,7 @@ final markDownStyle = MarkdownStyleSheet(
     wordSpacing: 2.0,
   ),
   p: const TextStyle(
-    fontSize: 18,
+    fontSize: 16,
     color: textColor,
     wordSpacing: 2.0,
   ),
