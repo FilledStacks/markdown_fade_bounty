@@ -10,7 +10,7 @@ class AnimatedFadeText extends StatefulWidget {
   const AnimatedFadeText({
     super.key,
     required this.markdownTexts,
-    this.animationDuration = const Duration(milliseconds: 500),
+    this.animationDuration = const Duration(seconds: 5),
   });
 
   @override
