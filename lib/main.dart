@@ -36,8 +36,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   List<Widget> textWidgets = [];
   String previousText = "";
-  int currentIndex = 0;
 
+  // Simulated API response with new text updates.
   List<String> apiResponses = [
     '''
 ### Problem
@@ -144,6 +144,8 @@ We’re building an LLM based tool for one of our FilledStacks clients. As with 
 ''',
   ];
 
+  ScrollController _scrollController = ScrollController();
+
   String findNewTextPart(String newText, String previousText) {
     int startIndex = 0;
 
@@ -157,12 +159,28 @@ We’re building an LLM based tool for one of our FilledStacks clients. As with 
   }
 
   Future<void> _simulateApiCall() async {
+    // Reset the previousText to start tracking new parts, but don't clear textWidgets
+    previousText = "";
+
     for (String newText in apiResponses) {
       String newPart = findNewTextPart(newText, previousText);
       previousText = newText;
       _processReceivedText(newPart);
       await Future.delayed(const Duration(milliseconds: 400));
+      _scrollToEnd();
     }
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _processReceivedText(String newPart) {
@@ -199,10 +217,13 @@ We’re building an LLM based tool for one of our FilledStacks clients. As with 
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-          child: Wrap(
-            spacing: 3.0,
-            runSpacing: 4.0,
-            children: textWidgets,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Wrap(
+              spacing: 3.0,
+              runSpacing: 4.0,
+              children: textWidgets,
+            ),
           ),
         ),
       ),
