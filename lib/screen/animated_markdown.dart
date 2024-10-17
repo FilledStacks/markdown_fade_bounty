@@ -3,6 +3,7 @@ import 'package:flutter_markdown_selectionarea/flutter_markdown.dart';
 import 'package:markdown_fade/utils/colors.dart';
 import 'package:markdown_fade/utils/styles.dart';
 
+/// [AnimatedFadeText] Widget
 class AnimatedFadeText extends StatefulWidget {
   final List<String> markdownTexts;
   final Duration animationDuration;
@@ -10,7 +11,7 @@ class AnimatedFadeText extends StatefulWidget {
   const AnimatedFadeText({
     super.key,
     required this.markdownTexts,
-    this.animationDuration = const Duration(milliseconds: 500),
+    this.animationDuration = const Duration(milliseconds: 800),
   });
 
   @override
@@ -21,7 +22,7 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
     with TickerProviderStateMixin {
   final List<String> _displayedLines = [];
   int _currentLineIndex = 0;
-  double _opacity = 0.0;
+  bool _isAnimating = false;
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -29,40 +30,41 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(
-          milliseconds: 250), // You can adjust duration as needed
+      duration: widget.animationDuration,
       vsync: this,
     );
 
-    _animation = TweenSequence<double>([
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.0, end: 1.0),
-        weight: 1.0,
-      ),
-    ]).animate(_controller);
-    _animation.addStatusListener((status) {});
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller)
+      ..addListener(() {
+        setState(() {});
+      });
   }
 
   Future<void> playAnimation() async {
-    while (_currentLineIndex < widget.markdownTexts.length) {
+    if (_currentLineIndex < widget.markdownTexts.length && !_isAnimating) {
       setState(() {
+        _isAnimating = true;
+
+        /// Add the new line before starting the animation
         _displayedLines.add(widget.markdownTexts[_currentLineIndex]);
         _currentLineIndex++;
       });
 
-      await _fadeInNewline();
+      /// Start the fade-in animation for the new text
+      await _fadeInNewText();
+      setState(() {
+        _isAnimating = false;
+      });
     }
   }
 
-  Future<void> _fadeInNewline() async {
-    _animation.addListener(() {
-      setState(() {
-        _opacity = _animation.value;
-      });
-    });
-
+  Future<void> _fadeInNewText() async {
     await _controller.forward();
+
+    /// Run the fade-in animation for the new chunk
     _controller.reset();
+
+    /// Reset the controller for the next addition
   }
 
   @override
@@ -86,31 +88,21 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
                     children: _displayedLines.asMap().entries.map((entry) {
                       int index = entry.key;
                       String line = entry.value;
-                      return ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.black,
-                              Colors.black,
-                              index == _displayedLines.length - 1
-                                  ? Colors.black.withOpacity(_opacity)
-                                  : Colors.black,
-                            ],
-                            stops: const [
-                              0.2,
-                              0.1,
-                              0.9,
-                            ],
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: MarkdownBody(
-                          data: line,
-                          styleSheet: markDownStyle,
-                        ),
-                      );
+
+                      /// Now we are applying AnimatedOpacity only to the latest added text
+                      return index == _displayedLines.length - 1 && _isAnimating
+                          ? AnimatedOpacity(
+                              opacity: _animation.value,
+                              duration: widget.animationDuration,
+                              child: MarkdownBody(
+                                data: line,
+                                styleSheet: markDownStyle,
+                              ),
+                            )
+                          : MarkdownBody(
+                              data: line, // Already visible text (no animation)
+                              styleSheet: markDownStyle,
+                            );
                     }).toList(),
                   ),
                 ),
@@ -121,10 +113,10 @@ class AnimatedFadeTextState extends State<AnimatedFadeText>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          playAnimation();
+          playAnimation(); // Trigger animation for new chunk on FAB tap
         },
-        tooltip: 'Ask',
-        child: const Icon(Icons.send),
+        tooltip: 'Add Text',
+        child: const Icon(Icons.add),
       ),
     );
   }
