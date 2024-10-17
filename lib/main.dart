@@ -2,66 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 
-const markdownCunks = [
-  '''
-### Problem
-
-We’re building an LLM based tool for one of our FilledStacks clients. 
-  ''',
-  '''
-As with ChatGPT, the response from the LLM is streamed back to us.
-  ''',
-  '''
-The text comes back as it 
-  ''',
-  '''
-is being completed. 
-  ''',
-  '''
-Here’s an example of how
-  ''',
-  '''
-paragraph would be returned:
-  ''',
-  '''
-**The full paragraph**
-
-“I need every new
-  ''',
-  '''
-word being added to the text to animate i
-  ''',
-  '''
-n using a fade functionality. This an
-  ''',
-  '''
-example of this can be seen when using Gemini chat.”
-  ''',
-  '''
-**How it’s returned**
-
-“I need”
-  ''',
-  '''
-“I need every new word”
-  ''',
-  '''
-“I need every new word
-  ''',
-  '''
-being added to”
-  ''',
-  '''
-“I need every new word being
-  ''',
-  '''
-added to the text”
-  ''',
-  '''
-“I need every new word being added to the text to animate in”
-  ''',
-];
-
 const defaultMessage = 'Tap FAB to add markdown';
 
 void main() {
@@ -70,6 +10,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -93,69 +34,159 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> fullTextSections = [];
   List<Widget> textWidgets = [];
+  String previousText = "";
   int currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    setup();
-  }
+  List<String> apiResponses = [
+    '''
+### Problem
 
-  void setup() {
-    for (String chunk in markdownCunks) {
-      // Detect if the chunk contains a double newline (\n\n) indicating an empty line.
-      if (chunk.contains('\n\n')) {
-        // Split the chunk at each instance of double newline (\n\n).
-        List<String> parts = chunk.split('\n\n');
+We’re building an LLM based tool for one of our FilledStacks clients. 
+''',
+    '''
+### Problem
 
-        for (int i = 0; i < parts.length; i++) {
-          String part = parts[i];
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us.
+''',
+    '''
+### Problem
 
-          // Add the text part.
-          if (part.isNotEmpty) {
-            fullTextSections.add(part);
-          }
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it
+''',
+    '''
+### Problem
 
-          // Add an empty string after each part except the last one to represent the blank line.
-          if (i < parts.length - 1) {
-            fullTextSections.add('');
-          }
-        }
-      } else {
-        // If no double newline is found, add the chunk as is.
-        fullTextSections.add(chunk);
-      }
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. 
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how 
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate i
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”**How it’s returned**
+
+"I need
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”**How it’s returned**
+
+"I need every new word
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”**How it’s returned**
+
+"I need every new word being added to
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”**How it’s returned**
+
+"I need every new word being added to the text
+''',
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. As with ChatGPT, the response from the LLM is streamed back to us. The text comes back as it is being completed. Here’s an example of how paragraph would be returned:**The full paragraph**
+
+“I need every new word being added to the text to animate in using a fade functionality. This an example of this can be seen when using Gemini chat.”**How it’s returned**
+
+"I need every new word being added to the text to animate in”
+''',
+  ];
+
+  String findNewTextPart(String newText, String previousText) {
+    int startIndex = 0;
+
+    while (startIndex < newText.length &&
+        startIndex < previousText.length &&
+        newText[startIndex] == previousText[startIndex]) {
+      startIndex++;
     }
 
-    setState(() {});
+    return newText.substring(startIndex);
   }
 
-  void _addMarkdown() async {
-    for (int i = 0; i < fullTextSections.length; i++) {
-      String txt = i == 0
-          ? fullTextSections[currentIndex]
-          : fullTextSections[currentIndex]
-              .replaceAll(fullTextSections[currentIndex - 1], "");
-      setState(() {
-        List<Widget> widgets = [];
-        if (txt.isEmpty) {
-          widgets.add(SizedBox(
-            height: 2,
+  Future<void> _simulateApiCall() async {
+    for (String newText in apiResponses) {
+      String newPart = findNewTextPart(newText, previousText);
+      previousText = newText;
+      _processReceivedText(newPart);
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+  }
+
+  void _processReceivedText(String newPart) {
+    if (newPart.isEmpty) return;
+
+    setState(() {
+      List<String> parts = newPart.split('\n\n');
+      for (int i = 0; i < parts.length; i++) {
+        String part = parts[i];
+        if (part.isNotEmpty) {
+          textWidgets.add(
+            MarkdownBody(
+              data: part,
+            ).animate().fade(duration: const Duration(milliseconds: 800)),
+          );
+        }
+        if (i < parts.length - 1) {
+          textWidgets.add(SizedBox(
+            height: 20,
             width: double.infinity,
           ));
         }
-        widgets.add(
-          MarkdownBody(data: txt)
-              .animate()
-              .fade(duration: const Duration(milliseconds: 800)),
-        );
-        textWidgets.addAll(widgets);
-        currentIndex++;
-      });
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
+      }
+    });
   }
 
   @override
@@ -176,9 +207,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addMarkdown,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        onPressed: _simulateApiCall,
+        tooltip: 'Start',
+        child: const Icon(Icons.play_arrow),
       ),
     );
   }
