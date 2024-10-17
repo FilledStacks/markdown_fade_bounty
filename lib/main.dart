@@ -29,30 +29,92 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _currentMarkdown = '';
   int _markdownIndex = 0;
+  List<String> _words = [];
 
   final List<String> markdownChunks = [
-    '## Problem\n\nThis is',
-    '## Problem\n\nThis is the main issue with what',
-    '## Problem\n\nThis is the main issue with what we\'re trying to solve.',
-    // Add more chunks if necessary
+    '''
+### Problem
+
+We’re building an LLM based tool for one of our FilledStacks clients. 
+  ''',
+    '''
+As with ChatGPT, the response from the LLM is streamed back to us.
+  ''',
+    '''
+The text comes back as it 
+  ''',
+    '''
+is being completed. 
+  ''',
+    '''
+Here’s an example of how
+  ''',
+    '''
+paragraph would be returned:
+  ''',
+    '''
+**The full paragraph**
+
+“I need every new
+  ''',
+    '''
+word being added to the text to animate i
+  ''',
+    '''
+n using a fade functionality. This an
+  ''',
+    '''
+example of this can be seen when using Gemini chat.”
+  ''',
+    '''
+**How it’s returned**
+
+“I need”
+  ''',
+    '''
+“I need every new word”
+  ''',
+    '''
+“I need every new word
+  ''',
+    '''
+being added to”
+  ''',
+    '''
+“I need every new word being
+  ''',
+    '''
+added to the text”
+  ''',
+    '''
+“I need every new word being added to the text to animate in”
+  ''',
   ];
 
   void _startAddingMarkdown() {
     _markdownIndex = 0; // Reset index
     _currentMarkdown = ''; // Reset current markdown
-    _addNextChunk(); // Start adding markdown chunks
+    _words = _splitMarkdownIntoWords(markdownChunks); // Split into words
+    _addNextWord(); // Start adding words
   }
 
-  void _addNextChunk() {
-    if (_markdownIndex < markdownChunks.length) {
+  List<String> _splitMarkdownIntoWords(List<String> chunks) {
+    return chunks.join(' ').split(' ');
+  }
+
+  void _addNextWord() {
+    if (_markdownIndex < _words.length) {
       setState(() {
-        _currentMarkdown =
-            markdownChunks[_markdownIndex]; // Update the single string
+        // Append the next word
+        if (_currentMarkdown.isNotEmpty) {
+          _currentMarkdown += ' '; // Add space before next word
+        }
+        _currentMarkdown += _words[_markdownIndex];
       });
 
-      // Move to the next chunk after a delay
+      // Move to the next word after a delay
       _markdownIndex++;
-      Future.delayed(const Duration(milliseconds: 1000), _addNextChunk);
+      Future.delayed(const Duration(milliseconds: 1000), _addNextWord);
     }
   }
 
