@@ -114,7 +114,7 @@ added to the text”
 
       // Move to the next word after a delay
       _markdownIndex++;
-      Future.delayed(const Duration(milliseconds: 1000), _addNextWord);
+      Future.delayed(const Duration(milliseconds: 50), _addNextWord);
     }
   }
 
@@ -130,7 +130,7 @@ added to the text”
           constraints: const BoxConstraints(maxWidth: 700),
           child: AnimatedOpacity(
             opacity: _currentMarkdown.isEmpty ? 0 : 1,
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 50),
             child: MarkdownBody(
               data: _currentMarkdown,
             ),
