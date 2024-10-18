@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 import 'dart:async';
 
+import 'package:markdown_fade/utils/compare_markdown.dart';
+
 typedef ChunkWidgetBuilder = Widget Function(
     BuildContext context, TextChunk text);
 
@@ -30,14 +32,6 @@ class FadeStreamingText extends StatefulWidget {
   ///
   /// If you want to customize the style of the markdown, you can provide your own style sheet.
   final MarkdownStyleSheet? styleSheet;
-
-  /// The delimiter to use for the markdown.
-  ///
-  /// This is used to determine how to render the markdown.
-  ///
-  /// If the delimiter is '\n', the markdown will be rendered as a body of text.
-  ///
-  final String delimiter;
 
   /// The delay between each chunk of text.
   ///
@@ -81,8 +75,7 @@ class FadeStreamingText extends StatefulWidget {
     this.textStream,
     this.staticMarkdown,
     this.styleSheet,
-    this.delimiter = '',
-    this.delay = const Duration(milliseconds: 20),
+    this.delay = const Duration(milliseconds: 500),
     this.fadeInDuration = const Duration(milliseconds: 500),
     this.chunkWidgetBuilder,
   }) : assert((textStream == null) ^ (staticMarkdown == null),
@@ -117,22 +110,32 @@ class FadeStreamingTextState extends State<FadeStreamingText>
     _subscribeToStream(widget.textStream != null);
   }
 
-  void _subscribeToStream(bool listenStream) {
-    if (!listenStream) return;
+  void _subscribeToStream(bool isStreaming) {
+    if (!isStreaming) {
+      _completeText = widget.staticMarkdown!;
+      return;
+    }
     _subscription = widget.textStream?.listen(
       (newText) {
         setState(() {
           _isStreaming = true;
-          _completeText += widget.delimiter + newText;
+
+          // Extract the new text
+          String extractedText = '';
+          extractedText = compareMarkdown(_completeText, newText);
+
+          _completeText = newText;
+
           _textChunks.add(
             TextChunk(
-              (newText),
+              extractedText.isEmpty ? "\n" : extractedText,
               AnimationController(
-                duration: widget.delay ?? const Duration(milliseconds: 50),
+                duration: widget.delay ?? const Duration(milliseconds: 500),
                 vsync: this,
               )..forward(),
             ),
           );
+
           _scrollToBottom();
         });
       },
@@ -172,19 +175,10 @@ class FadeStreamingTextState extends State<FadeStreamingText>
   }
 
   Widget _renderMarkDownBasedOnDelimiter(String text) {
-    if (widget.delimiter != '\n') {
-      return MarkdownBody(
-        data: text,
-        styleSheet: widget.styleSheet,
-        shrinkWrap: true,
-      );
-    }
-
-    return Markdown(
+    return MarkdownBody(
       data: text,
       styleSheet: widget.styleSheet,
       shrinkWrap: true,
-      padding: const EdgeInsets.only(top: 6),
     );
   }
 
@@ -204,6 +198,7 @@ class FadeStreamingTextState extends State<FadeStreamingText>
                   if (widget.chunkWidgetBuilder != null) {
                     return widget.chunkWidgetBuilder!(context, chunk);
                   }
+
                   return FadeTransition(
                     opacity: chunk.controller,
                     key: UniqueKey(),
